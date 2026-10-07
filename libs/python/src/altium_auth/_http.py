@@ -8,6 +8,7 @@ takes effect.
 from __future__ import annotations
 
 import json
+import ssl
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 from urllib.parse import urlparse
 
-from .errors import TransportError
+from .errors import TlsError, TransportError
 
 try:
     _USER_AGENT = f"altium-auth-python/{version('altium-auth')}"
@@ -67,6 +68,8 @@ def request(
         body = exc.read().decode("utf-8", "replace") if exc.fp is not None else ""
         return Response(status=exc.code, text=body)
     except urllib.error.URLError as exc:
+        if isinstance(exc.reason, ssl.SSLError):
+            raise TlsError(f"TLS error requesting {url}: {exc.reason}") from exc
         raise TransportError(f"network error requesting {url}: {exc.reason}") from exc
     except TimeoutError as exc:
         raise TransportError(f"request to {url} timed out after {timeout}s") from exc

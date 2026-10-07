@@ -16,6 +16,7 @@ from .errors import (
     ConfigurationError,
     OAuthError,
     StateMismatchError,
+    TlsError,
     TransportError,
 )
 from .models import AuthorizationRequest, TokenSet, WorkspaceSelection
@@ -37,6 +38,7 @@ __all__ = [
     "OAuthError",
     "ActionWaitError",
     "StateMismatchError",
+    "TlsError",
     "TransportError",
     "__version__",
 ]

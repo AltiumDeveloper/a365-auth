@@ -162,6 +162,7 @@ All errors subclass `AltiumAuthError`:
 | `ActionWaitError` | ActionWait timed out, was cancelled (410), or returned an unusable body. |
 | `StateMismatchError` | Returned state ≠ wait token (CSRF guard). Subclass of `ActionWaitError`. |
 | `TransportError` | Network-level failure. |
+| `TlsError` | TLS/certificate failure. Subclass of `TransportError`. |
 
 ## Development
 

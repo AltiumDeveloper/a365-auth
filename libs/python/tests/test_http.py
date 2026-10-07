@@ -1,9 +1,10 @@
+import ssl
 import urllib.error
 
 import pytest
 
 from altium_auth import _http
-from altium_auth.errors import TransportError
+from altium_auth.errors import TlsError, TransportError
 
 
 class _FakeResp:
@@ -49,6 +50,15 @@ def test_request_raises_transport_error_on_network_failure(monkeypatch):
 
     monkeypatch.setattr(_http.urllib.request, "urlopen", _raise)
     with pytest.raises(TransportError):
+        _http.request("POST", "https://x/y")
+
+
+def test_request_raises_tls_error_on_certificate_failure(monkeypatch):
+    def _raise(req, timeout):
+        raise urllib.error.URLError(ssl.SSLCertVerificationError("certificate has expired"))
+
+    monkeypatch.setattr(_http.urllib.request, "urlopen", _raise)
+    with pytest.raises(TlsError):
         _http.request("POST", "https://x/y")
 
 

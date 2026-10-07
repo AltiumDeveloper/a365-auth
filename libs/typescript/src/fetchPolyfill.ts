@@ -92,9 +92,23 @@ const TLS_ERROR_CODES = new Set([
   "HOSTNAME_MISMATCH",
 ]);
 
-export function isTlsError(err: unknown): err is Error {
-  if (err instanceof Error && "code" in err) {
-    return TLS_ERROR_CODES.has(String(err.code));
+const REQUEST_TIMEOUT_CODES = new Set(["UND_ERR_HEADERS_TIMEOUT", "UND_ERR_BODY_TIMEOUT"]);
+
+function hasCodeInChain(err: unknown, codes: Set<string>): err is Error {
+  for (let e: unknown = err; e instanceof Error; e = (e as { cause?: unknown }).cause) {
+    if ("code" in e && codes.has(String((e as { code?: unknown }).code))) {
+      return true;
+    }
   }
   return false;
+}
+
+/** True when a TLS/certificate failure appears anywhere in the error's cause chain. */
+export function isTlsError(err: unknown): err is Error {
+  return hasCodeInChain(err, TLS_ERROR_CODES);
+}
+
+/** True when the HTTP client's own request timeout fired, rather than the network failing. */
+export function isRequestTimeout(err: unknown): err is Error {
+  return hasCodeInChain(err, REQUEST_TIMEOUT_CODES);
 }

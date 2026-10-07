@@ -3,6 +3,7 @@
 // token-acquisition client, so it needs no JWT/JWKS validation stack; the small
 // OAuth surface is hand-rolled and pinned by the conformance vectors.
 using System.Net.Http.Headers;
+using System.Security.Authentication;
 using System.Text;
 
 namespace Altium.Auth;
@@ -11,6 +12,13 @@ namespace Altium.Auth;
 public sealed class AltiumAuthClient(HttpClient http, AltiumAuthOptions options) : IAltiumAuthClient
 {
     private static string Truncate(string s) => s.Length > 500 ? s.Substring(0, 500) : s;
+
+    private static bool HasTlsFailureInChain(Exception e)
+    {
+        for (var inner = e.InnerException; inner is not null; inner = inner.InnerException)
+            if (inner is AuthenticationException) return true;
+        return false;
+    }
 
     private static string Base64Url(byte[] bytes) =>
         Convert.ToBase64String(bytes).Replace('+', '-').Replace('/', '_').TrimEnd('=');
@@ -157,7 +165,20 @@ public sealed class AltiumAuthClient(HttpClient http, AltiumAuthOptions options)
             {
                 Content = new StringContent(Json.Write(new ActionWaitRequest { Token = token }), Encoding.UTF8, "application/json"),
             };
-            var res = await http.SendAsync(req, ct).ConfigureAwait(false);
+            HttpResponseMessage res;
+            try
+            {
+                res = await http.SendAsync(req, ct).ConfigureAwait(false);
+            }
+            catch (HttpRequestException e) when (HasTlsFailureInChain(e))
+            {
+                throw new InvalidOperationException($"ActionWait TLS error: {e.Message}", e);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                continue;
+            }
+
             var status = (int)res.StatusCode;
 
             if (status == 408) continue;                                  // normal reconnect

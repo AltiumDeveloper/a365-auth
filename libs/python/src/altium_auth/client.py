@@ -17,6 +17,7 @@ from .errors import (
     ConfigurationError,
     OAuthError,
     StateMismatchError,
+    TlsError,
     TransportError,
     _truncate,
 )
@@ -271,7 +272,11 @@ class AltiumAuthClient:
                 resp = _http.request(
                     "POST", endpoint, headers=dict(_JSON_HEADERS), data=payload, timeout=remaining
                 )
+            except TlsError as exc:
+                raise ActionWaitError(f"ActionWait TLS error: {exc}") from exc
             except TransportError:
+                if time.monotonic() - start < timeout:
+                    raise
                 continue
             if resp.status == 408:
                 continue

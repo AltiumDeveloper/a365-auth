@@ -320,6 +320,8 @@ Status codes:
 
 **Two distinct timeouts.** The server bounds how long it holds each `/await` request open before returning `408`; treat that hold interval as an implementation detail that may change, and simply reconnect whenever you receive a `408`. It is *not* how long a user has to sign in. Your app owns a separate **overall sign-in timeout** that spans the whole reconnect loop (for example, the TypeScript library defaults to 3 minutes and the .NET sign-in tool uses 5). When your overall timeout elapses, stop reconnecting and abandon the wait token.
 
+Mind your **HTTP client's own request timeout** as well: the hold interval can exceed it (.NET's `HttpClient` defaults to 100 seconds). A per-request timeout that fires mid-hold says nothing about the sign-in, so treat it exactly like a `408` and reconnect — never as a sign-in failure. Simplest is to disable the per-request timeout entirely and let your overall sign-in timeout be the only deadline.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -327,6 +329,7 @@ Status codes:
 | `/await` returns `408` repeatedly | Normal long-poll cycling while the user is still signing in | Keep reconnecting with the same token; only give up after your own overall timeout |
 | `/await` returns `410` | Token already consumed, or a second poll superseded this one | Start a new sign-in from Step 1 with a fresh token |
 | Browser completes but app never returns | The `state` in the authorize request didn't match the `token` you poll with | Use the identical value for `state` and the wait `token` |
+| Sign-in fails with a client-side request timeout while the user is still on the login page | The HTTP client's per-request timeout is shorter than the server's hold interval | Reconnect on a client-side request timeout as you would on a `408`, but fail on other transport errors such as DNS or TLS failures; better still, disable the per-request timeout and bound the flow with your overall sign-in timeout |
 | `State mismatch` after `200` | Returned `data.state` ≠ your wait token (possible CSRF) | Abort the sign-in; do not exchange the code |
 | `invalid_grant` at token endpoint | Code expired/already used, or `redirect_uri` ≠ `https://auth.altium.com/api/AuthComplete` | Restart sign-in; send the exact redirect URI and PKCE verifier |
 

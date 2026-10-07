@@ -45,7 +45,8 @@ For apps that **can't host a public redirect**. `SignInAsync` invokes your
 using Altium.Auth;
 using System.Diagnostics;
 
-var http = new HttpClient();
+// ActionWait long-polls: the CancellationToken below is the real deadline.
+var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
 var options = new AltiumAuthOptions
 {
     ClientId = "your-client-id",
@@ -55,7 +56,8 @@ var options = new AltiumAuthOptions
 var client = new AltiumAuthClient(http, options);
 
 // Opens the browser and waits for the sign-in callback.
-TokenSet tokens = await client.SignInAsync();
+using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+TokenSet tokens = await client.SignInAsync(cts.Token);
 
 // Persist `tokens` yourself — the client never stores them.
 
@@ -164,6 +166,89 @@ if (tokens.RefreshToken is not null)
     await client.RevokeRefreshTokenAsync(tokens.RefreshToken);
 ```
 
+## Use from PowerShell
+
+`Altium.Auth` has no dependencies on any target, so PowerShell can load it directly with
+no SDK, compiler or wrapper module. PowerShell 7+ loads the `net8.0` asset and Windows
+PowerShell 5.1 loads the `netstandard2.0` one.
+
+Download the package from nuget.org and load the asset for your edition. Keep the `.zip`
+extension: `Expand-Archive` on 5.1 refuses a `.nupkg`.
+
+```powershell
+$lib = if ($PSVersionTable.PSEdition -eq 'Desktop') { 'netstandard2.0' } else { 'net8.0' }
+$ver = (Invoke-RestMethod 'https://api.nuget.org/v3-flatcontainer/altium.auth/index.json').versions[-1]
+Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/altium.auth/$ver/altium.auth.$ver.nupkg" -OutFile pkg.zip
+Expand-Archive pkg.zip -DestinationPath pkg -Force
+Add-Type -Path "./pkg/lib/$lib/Altium.Auth.dll"
+```
+
+Then sign in and call the API:
+
+```powershell
+$http = [System.Net.Http.HttpClient]::new()
+$http.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+$options = [Altium.Auth.AltiumAuthOptions]@{
+    ClientId    = 'your-client-id'
+    Scopes      = 'openid profile'
+    OpenBrowser = { param($url) Start-Process $url }
+}
+$client = [Altium.Auth.AltiumAuthClient]::new($http, $options)
+$cts = [System.Threading.CancellationTokenSource]::new([timespan]::FromMinutes(5))
+
+function Wait-Task($task) {
+    try {
+        while (-not $task.IsCompleted) { Start-Sleep -Milliseconds 200 }
+        $task.GetAwaiter().GetResult()
+    }
+    finally { if (-not $task.IsCompleted) { $cts.Cancel() } }
+}
+
+$tokens = Wait-Task $client.SignInAsync([Altium.Auth.WorkspaceSelection]::None, $cts.Token)
+
+$body = @{ query = '{ desWorkspaceInfos { authId name url } }' } | ConvertTo-Json
+Invoke-RestMethod https://eur.365.altium.com/api/graphql -Method Post -ContentType 'application/json' `
+    -Headers @{ Authorization = "Bearer $($tokens.AccessToken)" } -Body $body
+```
+
+The hashtable cast is how PowerShell sets the options' init-only properties, and the
+ScriptBlock converts to the `Action<string>` that `OpenBrowser` expects. PowerShell has no
+`await`, so `Wait-Task` polls the task rather than blocking on `GetAwaiter().GetResult()`,
+which would ignore Ctrl+C until the deadline. When you do press Ctrl+C, its `finally`
+cancels the sign-in. `$http.Timeout` is cleared because the ActionWait long-poll outlasts
+`HttpClient`'s 100-second default, which leaves the `CancellationTokenSource` as the only
+deadline. If a call fails, the real message is on `$_.Exception.InnerException`.
+
+There is no client-credentials grant, so a script can't get a token with nobody present.
+It signs in interactively once and reuses the result. Check `ExpiresAt` before reaching for
+`offline_access`: lifetimes are set per client and can be long.
+
+### The ready-made script
+
+[`tools/powershell/Get-AltiumToken.ps1`](https://github.com/AltiumDeveloper/altium-auth/blob/main/libs/dotnet/tools/powershell/Get-AltiumToken.ps1)
+does all of the above: it downloads and caches the assembly, picks the right asset, signs in
+and optionally exchanges for a workspace token with `-WorkspaceId`.
+
+Windows blocks scripts downloaded from the internet, so unblock it before the first run, or
+start it with `powershell -ExecutionPolicy Bypass -File .\Get-AltiumToken.ps1`.
+
+```powershell
+Unblock-File ./Get-AltiumToken.ps1
+./Get-AltiumToken.ps1 -ClientId $id -WorkspaceId $authId
+```
+
+### Keeping tokens between runs
+
+The script can also save the token set so later runs skip the browser. With `-TokenFile`,
+it encrypts the tokens with DPAPI, so only the same Windows user on the same machine can
+read them, and on the next run it refreshes silently from the saved refresh token. If the
+refresh is rejected it falls back to an interactive sign-in. None of this is needed for a
+one-off script, but it helps for anything scheduled.
+
+```powershell
+./Get-AltiumToken.ps1 -ClientId $id -Scopes 'openid profile offline_access' -TokenFile ~/.altium-tokens
+```
+
 ## API reference
 
 Constructor: `new AltiumAuthClient(HttpClient http, AltiumAuthOptions options)` — implements `IAltiumAuthClient`.
@@ -230,7 +315,9 @@ Methods throw on empty required arguments and on non-success responses. The mess
 includes the HTTP status and the OAuth `error`/`error_description` when present — e.g. a
 Gov workspace exchange on a Commercial endpoint surfaces `access_denied`; a refresh with a
 revoked/expired token surfaces `invalid_grant`. ActionWait failures surface a descriptive
-message (timeout, cancellation, or a CSRF `state` mismatch).
+message (cancellation, a TLS/certificate failure, or a CSRF `state` mismatch). A request
+timeout mid-poll is *not* a failure — like a `408`, the client reconnects. Any other transport
+failure ends the sign-in.
 
 ## Compatibility
 
@@ -240,7 +327,11 @@ message (timeout, cancellation, or a CSRF `state` mismatch).
   `DataContractJsonSerializer`, so a .NET Framework project installs the package
   without `System.Text.Json` or its transitive assemblies and the binding redirects
   they bring.
-- You provide the `HttpClient`; the client sets headers/bodies but does not own the transport.
+- **PowerShell 7+ and Windows PowerShell 5.1** can load and drive the assembly
+  directly — see [Use from PowerShell](#use-from-powershell).
+- You provide the `HttpClient`; the client sets headers/bodies but does not own the transport — so
+  its `Timeout` is yours to set (`SignInAsync` long-polls; see the note in
+  [Public apps](#public-apps-desktop--actionwait-sign-in)).
 
 ## How it's built
 

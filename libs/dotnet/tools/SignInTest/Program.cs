@@ -78,7 +78,7 @@ if (selectWorkspace != WorkspaceSelection.None && env == "aes")
 if ((refresh || revoke) && !scopes.Split(' ').Contains("offline_access")) scopes += " offline_access";
 
 var clientSecret = Environment.GetEnvironmentVariable("A365_CLIENT_SECRET");
-var http = new HttpClient();
+var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
 
 AltiumAuthOptions MkOptions(string e, string? scopeOverride = null) => new()
 {
