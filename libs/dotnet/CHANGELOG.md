@@ -5,7 +5,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+## [0.2.1] — 2026-10-07
 
 - **The ActionWait poll now reconnects when `HttpClient`'s request timeout fires.** The
   100-second default is shorter than the service's hold interval, so a sign-in that took
@@ -31,7 +33,15 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - An ActionWait 200 whose `data.code` is present but not a string is reported as an
     unparseable body rather than a missing `data.code`. No vector covers that case.
 
+- **Surface OAuth errors delivered via the ActionWait callback** — a `200` whose `data`
+  carries an `error` (e.g. `access_denied`, including a cross-partition workspace scope
+  requested at sign-in) now fails with that error instead of a generic "missing
+  data.code". Mirrors SPEC §4.3 and the `aw-error-in-data` conformance vector.
+
 ## [0.2.0] — 2026-09-04
 
 Initial release. Implements the Altium 365 auth spec (`spec/SPEC.md`, contract 0.2.0) at
 parity with the TypeScript library; passes the shared conformance vectors.
+
+[0.2.1]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/dotnet-v0.2.1
+[0.2.0]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/dotnet-v0.2.0

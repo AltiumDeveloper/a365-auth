@@ -1,6 +1,6 @@
 {
   "name": "@altium-developer/altium-auth",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Altium 365 OAuth2 authentication library with PKCE and ActionWait long-polling for browser-based sign-in.",
   "type": "module",
   "main": "./dist/index.js",

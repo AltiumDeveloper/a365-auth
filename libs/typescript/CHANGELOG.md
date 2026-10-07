@@ -5,7 +5,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Unreleased
+
+## [0.2.1] — 2026-10-07
 
 - **TLS failures during the ActionWait poll are detected again.** `fetch` reports a
   certificate failure as a `TypeError` whose `cause` carries the error code, so the
@@ -111,6 +113,7 @@ as the shared spec and sibling libraries evolve.
 - Zero runtime dependencies. Runs on Node ≥20, Bun, and Deno.
 - Conforms to the shared, language-neutral vectors in `spec/conformance/vectors.json`.
 
+[0.2.1]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/ts-v0.2.1
 [0.2.0]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/ts-v0.2.0
 [0.1.2]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/ts-v0.1.2
 [0.1.1]: https://github.com/AltiumDeveloper/altium-auth/releases/tag/ts-v0.1.1

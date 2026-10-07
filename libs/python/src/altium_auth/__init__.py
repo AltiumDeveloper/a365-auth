@@ -21,7 +21,7 @@ from .errors import (
 )
 from .models import AuthorizationRequest, TokenSet, WorkspaceSelection
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "AltiumAuthClient",
