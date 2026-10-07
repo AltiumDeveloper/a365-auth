@@ -23,16 +23,12 @@ public class ActionWaitTransportTests
     }
 
     [Fact]
-    public async Task SignIn_ReconnectsAfterANetworkFailure()
+    public async Task SignIn_FailsFastWhenTheNetworkIsUnreachable()
     {
-        var handler = new PollHandler(
-            _ => throw new HttpRequestException("An error occurred while sending the request."),
-            token => Json(200, $"{{\"data\":{{\"code\":\"c\",\"state\":\"{token}\"}}}}"));
+        var handler = new PollHandler(_ => throw new HttpRequestException("No such host is known."));
 
-        var tokens = await NewClient(handler).SignInAsync();
-
-        Assert.Equal("AT", tokens.AccessToken);
-        Assert.Equal(2, handler.Polls);
+        await Assert.ThrowsAsync<HttpRequestException>(() => NewClient(handler).SignInAsync());
+        Assert.Equal(1, handler.Polls);
     }
 
     [Theory]

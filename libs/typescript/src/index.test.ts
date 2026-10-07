@@ -220,13 +220,13 @@ describe("signIn", () => {
     expect(tokenRequest.body as string).toContain("code=hook-code");
   });
 
-  it("reconnects when an ActionWait poll fails below the status layer", async () => {
+  it("reconnects when the HTTP client's request timeout fires mid-poll", async () => {
     vi.stubGlobal("crypto", { ...crypto, randomUUID: () => "net-state" });
     let polls = 0;
     vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string) => {
       if (url.includes("await")) {
         if (polls++ === 0) {
-          throw new TypeError("fetch failed", { cause: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }) });
+          throw new TypeError("fetch failed", { cause: Object.assign(new Error("Headers Timeout Error"), { code: "UND_ERR_HEADERS_TIMEOUT" }) });
         }
         return { ok: true, status: 200, headers: new Map(), text: () => Promise.resolve(JSON.stringify({ data: { code: "c", state: "net-state" } })) };
       }
@@ -237,6 +237,16 @@ describe("signIn", () => {
 
     expect(result.access_token).toBe("mock-access-token");
     expect(polls).toBe(2);
+  });
+
+  it("fails fast when the network is unreachable", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(
+      new TypeError("fetch failed", { cause: Object.assign(new Error("getaddrinfo ENOTFOUND"), { code: "ENOTFOUND" }) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(signIn(validConfig, { timeoutMs: 2000 })).rejects.toThrow("fetch failed");
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("fails fast on a TLS failure reported through the fetch error's cause", async () => {

@@ -329,7 +329,7 @@ Mind your **HTTP client's own request timeout** as well: the hold interval can e
 | `/await` returns `408` repeatedly | Normal long-poll cycling while the user is still signing in | Keep reconnecting with the same token; only give up after your own overall timeout |
 | `/await` returns `410` | Token already consumed, or a second poll superseded this one | Start a new sign-in from Step 1 with a fresh token |
 | Browser completes but app never returns | The `state` in the authorize request didn't match the `token` you poll with | Use the identical value for `state` and the wait `token` |
-| Sign-in fails with a client-side request timeout while the user is still on the login page | The HTTP client's per-request timeout is shorter than the server's hold interval | Reconnect on transport failures as you would on a `408`; better still, disable the per-request timeout and bound the flow with your overall sign-in timeout |
+| Sign-in fails with a client-side request timeout while the user is still on the login page | The HTTP client's per-request timeout is shorter than the server's hold interval | Reconnect on a client-side request timeout as you would on a `408`, but fail on other transport errors such as DNS or TLS failures; better still, disable the per-request timeout and bound the flow with your overall sign-in timeout |
 | `State mismatch` after `200` | Returned `data.state` ≠ your wait token (possible CSRF) | Abort the sign-in; do not exchange the code |
 | `invalid_grant` at token endpoint | Code expired/already used, or `redirect_uri` ≠ `https://auth.altium.com/api/AuthComplete` | Restart sign-in; send the exact redirect URI and PKCE verifier |
 

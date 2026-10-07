@@ -174,10 +174,6 @@ public sealed class AltiumAuthClient(HttpClient http, AltiumAuthOptions options)
             {
                 throw new InvalidOperationException($"ActionWait TLS error: {e.Message}", e);
             }
-            catch (HttpRequestException)
-            {
-                continue;
-            }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 continue;

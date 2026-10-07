@@ -316,8 +316,9 @@ Methods throw on empty required arguments and on non-success responses. The mess
 includes the HTTP status and the OAuth `error`/`error_description` when present — e.g. a
 Gov workspace exchange on a Commercial endpoint surfaces `access_denied`; a refresh with a
 revoked/expired token surfaces `invalid_grant`. ActionWait failures surface a descriptive
-message (cancellation, a TLS/certificate failure, or a CSRF `state` mismatch). A transport
-timeout or dropped connection mid-poll is *not* a failure — like a `408`, the client reconnects.
+message (cancellation, a TLS/certificate failure, or a CSRF `state` mismatch). A request
+timeout mid-poll is *not* a failure — like a `408`, the client reconnects. Any other transport
+failure ends the sign-in.
 
 ## Compatibility
 

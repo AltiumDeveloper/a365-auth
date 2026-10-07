@@ -46,4 +46,4 @@ class TransportError(AltiumAuthError):
 
 
 class TlsError(TransportError):
-    """A TLS/certificate failure: a configuration error, never retried."""
+    """A TLS/certificate failure."""

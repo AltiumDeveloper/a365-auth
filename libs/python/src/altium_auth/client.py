@@ -275,6 +275,8 @@ class AltiumAuthClient:
             except TlsError as exc:
                 raise ActionWaitError(f"ActionWait TLS error: {exc}") from exc
             except TransportError:
+                if time.monotonic() - start < timeout:
+                    raise
                 continue
             if resp.status == 408:
                 continue

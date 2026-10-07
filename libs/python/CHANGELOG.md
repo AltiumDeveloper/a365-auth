@@ -2,8 +2,9 @@
 
 ## Unreleased
 
-- A TLS failure during the ActionWait poll now fails fast instead of reconnecting, and
-  surfaces as the new `TlsError` (a `TransportError` subclass).
+- A transport failure during the ActionWait poll now fails fast instead of reconnecting
+  until the sign-in timed out, since retrying an unreachable network doesn't help. A TLS
+  failure surfaces as the new `TlsError` (a `TransportError` subclass).
 
 ## 0.2.0
 

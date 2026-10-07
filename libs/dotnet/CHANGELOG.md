@@ -7,10 +7,10 @@ and this package adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **A transport failure during the ActionWait poll now reconnects** instead of aborting
-  the sign-in. `HttpClient`'s 100-second default timeout is shorter than the service's
-  hold interval, so a sign-in that took longer than that used to fail. A TLS failure
-  still fails fast, since it is a configuration error.
+- **The ActionWait poll now reconnects when `HttpClient`'s request timeout fires.** The
+  100-second default is shorter than the service's hold interval, so a sign-in that took
+  longer than that used to fail. Any other transport failure, TLS included, still fails
+  fast: retrying an unreachable network doesn't help.
 
 - **Multi-targeting: `netstandard2.0`, `net8.0`, `net10.0`.** `netstandard2.0` makes the
   package installable in .NET Framework 4.6.1+ projects (4.8 included), which previously

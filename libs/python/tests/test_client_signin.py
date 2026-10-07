@@ -1,4 +1,5 @@
 import json
+import time
 
 import pytest
 
@@ -73,13 +74,22 @@ def test_signin_state_mismatch(monkeypatch):
     assert "State mismatch" in str(ei.value)
 
 
-def test_signin_transport_error_reconnects(monkeypatch):
-    monkeypatch.setattr(
-        _http,
-        "request",
-        _Seq([TransportError("timed out"), (200, '{"data": {"code": "c", "state": "<echo>"}}')]),
-    )
-    assert _make_client().sign_in(timeout=2.0).access_token == "AT"
+def test_signin_unreachable_network_fails_fast(monkeypatch):
+    seq = _Seq([TransportError("Name or service not known")])
+    monkeypatch.setattr(_http, "request", seq)
+    with pytest.raises(TransportError):
+        _make_client().sign_in(timeout=2.0)
+    assert seq.i == 1
+
+
+def test_signin_request_timeout_reports_the_sign_in_timeout(monkeypatch):
+    def timed_out(method, url, *, headers=None, data=None, timeout=30.0):
+        time.sleep(timeout)
+        raise TransportError("timed out")
+
+    monkeypatch.setattr(_http, "request", timed_out)
+    with pytest.raises(ActionWaitError, match="poll timed out"):
+        _make_client().sign_in(timeout=0.05)
 
 
 def test_signin_tls_error_fails_fast(monkeypatch):
