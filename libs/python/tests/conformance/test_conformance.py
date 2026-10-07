@@ -20,8 +20,6 @@ from altium_auth import (
     AltiumAuthClient,
     AltiumAuthConfig,
     AltiumEndpoints,
-    TlsError,
-    TransportError,
     WorkspaceSelection,
     _http,
 )
@@ -43,15 +41,6 @@ def _mock_body(mock: dict) -> tuple[int, str]:
     if "json" in mock:
         return status, json.dumps(mock["json"])
     return status, mock.get("text", "")
-
-
-def _transport_error(kind: str) -> Exception:
-    """The Python equivalent of a vector's transportError — a failure below the status layer."""
-    if kind == "tls":
-        return TlsError("TLS error requesting https://actionwait.altium.com/await: certificate")
-    if kind == "timeout":
-        return TransportError("request to https://actionwait.altium.com/await timed out")
-    raise AssertionError(f"unknown transportError {kind}")
 
 
 def _form(body: str) -> dict[str, str]:
@@ -205,11 +194,8 @@ def test_action_wait(v, install):
 
     def responder(url, body, _idx):
         if "actionwait" in url:
-            poll = polls[min(counter["i"], len(polls) - 1)]
+            status, text = _mock_body(polls[min(counter["i"], len(polls) - 1)])
             counter["i"] += 1
-            if "transportError" in poll:
-                raise _transport_error(poll["transportError"])
-            status, text = _mock_body(poll)
             if "<stateEchoesToken>" in text:
                 text = text.replace("<stateEchoesToken>", json.loads(body)["token"])
             return status, text

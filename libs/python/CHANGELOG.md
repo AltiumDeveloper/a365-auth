@@ -3,7 +3,7 @@
 ## Unreleased
 
 - A TLS failure during the ActionWait poll now fails fast instead of reconnecting, and
-  surfaces as the new `TlsError` (a `TransportError` subclass). Contract 0.3.0.
+  surfaces as the new `TlsError` (a `TransportError` subclass).
 
 ## 0.2.0
 

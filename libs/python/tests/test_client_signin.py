@@ -3,7 +3,7 @@ import json
 import pytest
 
 from altium_auth import AltiumAuthClient, AltiumAuthConfig, _http
-from altium_auth.errors import ActionWaitError, StateMismatchError
+from altium_auth.errors import ActionWaitError, StateMismatchError, TlsError, TransportError
 
 
 def _make_client():
@@ -18,8 +18,11 @@ class _Seq:
 
     def __call__(self, method, url, *, headers=None, data=None, timeout=30.0):
         if "actionwait" in url:
-            status, body = self.polls[min(self.i, len(self.polls) - 1)]
+            poll = self.polls[min(self.i, len(self.polls) - 1)]
             self.i += 1
+            if isinstance(poll, Exception):
+                raise poll
+            status, body = poll
             if "<echo>" in body:
                 body = body.replace("<echo>", json.loads(data.decode())["token"])
             return _http.Response(status=status, text=body)
@@ -68,3 +71,21 @@ def test_signin_state_mismatch(monkeypatch):
     with pytest.raises(StateMismatchError) as ei:
         _make_client().sign_in(timeout=2.0)
     assert "State mismatch" in str(ei.value)
+
+
+def test_signin_transport_error_reconnects(monkeypatch):
+    monkeypatch.setattr(
+        _http,
+        "request",
+        _Seq([TransportError("timed out"), (200, '{"data": {"code": "c", "state": "<echo>"}}')]),
+    )
+    assert _make_client().sign_in(timeout=2.0).access_token == "AT"
+
+
+def test_signin_tls_error_fails_fast(monkeypatch):
+    seq = _Seq([TlsError("certificate verify failed")])
+    monkeypatch.setattr(_http, "request", seq)
+    with pytest.raises(ActionWaitError) as ei:
+        _make_client().sign_in(timeout=2.0)
+    assert "TLS" in str(ei.value)
+    assert seq.i == 1

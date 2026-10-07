@@ -220,6 +220,35 @@ describe("signIn", () => {
     expect(tokenRequest.body as string).toContain("code=hook-code");
   });
 
+  it("reconnects when an ActionWait poll fails below the status layer", async () => {
+    vi.stubGlobal("crypto", { ...crypto, randomUUID: () => "net-state" });
+    let polls = 0;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes("await")) {
+        if (polls++ === 0) {
+          throw new TypeError("fetch failed", { cause: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }) });
+        }
+        return { ok: true, status: 200, headers: new Map(), text: () => Promise.resolve(JSON.stringify({ data: { code: "c", state: "net-state" } })) };
+      }
+      return { ok: true, status: 200, headers: new Map(), text: () => Promise.resolve(JSON.stringify(mockTokenSet)) };
+    }));
+
+    const result = await signIn(validConfig, { timeoutMs: 2000 });
+
+    expect(result.access_token).toBe("mock-access-token");
+    expect(polls).toBe(2);
+  });
+
+  it("fails fast on a TLS failure reported through the fetch error's cause", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(
+      new TypeError("fetch failed", { cause: Object.assign(new Error("certificate has expired"), { code: "CERT_HAS_EXPIRED" }) }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(signIn(validConfig, { timeoutMs: 2000 })).rejects.toThrow("ActionWait TLS error");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("stops polling when ActionWait never delivers a code", async () => {
     // Server keeps asking the client to reconnect (408) and never returns a code.
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({

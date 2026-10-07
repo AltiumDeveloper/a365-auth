@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
+  "version": "0.2.0",
   "note": "Language-neutral conformance vectors for the Altium Identity flow. See README.md for the format and matchers. Extracted from src/index.test.ts and the live Commercial, Gov, and AES captures.",
 
   "authorizeUrl": [
@@ -378,21 +378,6 @@
         { "status": 200, "json": { "data": { "code": "code-2", "state": "<stateEchoesToken>" } } }
       ],
       "expect": { "outcome": "code", "code": "code-2" }
-    },
-    {
-      "id": "aw-transport-error-reconnect",
-      "description": "A transport failure below the status layer (a client-side request timeout firing mid-hold) is a reconnect, not a sign-in failure; the next 200 succeeds.",
-      "pollResponses": [
-        { "transportError": "timeout" },
-        { "status": 200, "json": { "data": { "code": "code-3", "state": "<stateEchoesToken>" } } }
-      ],
-      "expect": { "outcome": "code", "code": "code-3" }
-    },
-    {
-      "id": "aw-tls-error-terminal",
-      "description": "A TLS failure is a configuration error, not a transient one: fail fast instead of reconnecting.",
-      "pollResponses": [{ "transportError": "tls" }],
-      "expect": { "outcome": "errorContains", "errorContains": "TLS" }
     },
     {
       "id": "aw-410-terminal",

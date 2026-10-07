@@ -42,19 +42,6 @@ function stubFetch(reply: (url: string, opts: Any) => { status: number; body: st
   return calls;
 }
 
-/** The Node equivalent of a vector's `transportError` — a failure below the status layer. */
-function transportError(kind: string): Error {
-  if (kind === "tls") {
-    return new TypeError("fetch failed", {
-      cause: Object.assign(new Error("certificate has expired"), { code: "CERT_HAS_EXPIRED" }),
-    });
-  }
-  if (kind === "timeout") {
-    return Object.assign(new Error("The operation was aborted due to timeout"), { code: "UND_ERR_HEADERS_TIMEOUT" });
-  }
-  throw new Error(`unknown transportError ${kind}`);
-}
-
 function bodyText(r: Any): string {
   return r?.json !== undefined ? JSON.stringify(r.json) : (r?.text ?? "");
 }
@@ -160,9 +147,6 @@ describe("conformance: actionWait", () => {
         if (url.startsWith("https://actionwait")) {
           const r = v.pollResponses[Math.min(idx, v.pollResponses.length - 1)];
           idx++;
-          if (r.transportError) {
-            throw transportError(r.transportError);
-          }
           const body = bodyText(r).replace("<stateEchoesToken>", CONN);
           return { status: r.status, body };
         }

@@ -105,10 +105,6 @@ Responses:
 - `410` — the wait token is no longer valid (consumed/superseded). Terminal; the client **MUST** restart sign-in with a new token.
 - Other status — treat as an error.
 
-A poll that fails **below** the status layer — a client-side request timeout that fires during the hold, a dropped connection, a DNS blip — carries no information about the sign-in, so the client **MUST** reconnect with the same token exactly as for a `408`. Only the client's own overall sign-in timeout, an explicit cancellation, or a terminal status ends the loop. In particular, an HTTP stack whose per-request timeout is shorter than the server's hold interval **MUST NOT** surface that timeout as a sign-in failure.
-
-A **TLS failure is the exception**: it is a configuration error (untrusted or expired certificate, hostname mismatch — typical of a misconfigured AES installation), not a transient one, so the client **MUST** fail fast rather than reconnect.
-
 ### 4.4 Ordering
 The client **MUST** start the `/await` poll **before** opening the browser, so a fast sign-in cannot deliver the result before the client is listening.
 

@@ -102,11 +102,8 @@ public class ConformanceTests
         {
             if (req.RequestUri!.ToString().Contains("actionwait"))
             {
-                var poll = polls[Math.Min(awaitIdx, polls.Length - 1)];
+                var (st, pbody) = MockBody(polls[Math.Min(awaitIdx, polls.Length - 1)]);
                 awaitIdx++;
-                if (poll.TryGetProperty("transportError", out var kind))
-                    throw TransportError(kind.GetString()!);
-                var (st, pbody) = MockBody(poll);
                 if (pbody.Contains("<stateEchoesToken>"))
                     pbody = pbody.Replace("<stateEchoesToken>", JsonDocument.Parse(reqBody).RootElement.GetProperty("token").GetString());
                 return (st, pbody);
@@ -240,19 +237,6 @@ public class ConformanceTests
         "strict" => WorkspaceSelection.Strict,
         "optional" => WorkspaceSelection.Optional,
         _ => throw new InvalidOperationException($"Unknown selectWorkspace value in vector: '{v}'."),
-    };
-
-    /// <summary>The .NET equivalent of a vector's <c>transportError</c> — a failure below the status layer.</summary>
-    private static Exception TransportError(string kind) => kind switch
-    {
-        "tls" => new HttpRequestException(
-            "The SSL connection could not be established.",
-            new System.Net.WebException(
-                "Could not establish trust relationship for the SSL/TLS secure channel.",
-                new System.Security.Authentication.AuthenticationException("certificate not trusted"))),
-        "timeout" => new TaskCanceledException(
-            "The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing."),
-        _ => throw new InvalidOperationException($"unknown transportError {kind}"),
     };
 
     private static (int, string) MockBody(JsonElement mock)

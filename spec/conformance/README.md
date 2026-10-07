@@ -35,10 +35,7 @@ Then either `mockResponse` + `expectResult`, or `mockResponse` + `expectErrorCon
 
 ### `actionWait`
 Input: `pollResponses` (an ordered list the mock returns to successive `POST /await` calls).
-A response is either `status` + `json`/`text`, or `transportError` (`timeout` | `tls`) — the mock
-fails the call *below* the status layer with that runtime's equivalent error.
-`expect`: `outcome` (`code` | `errorContains`) — verifies `408`=reconnect, `410`=terminal, `200` parse
-rules, and transport failures (`timeout`=reconnect, `tls`=terminal).
+`expect`: `outcome` (`code` | `errorContains`) — verifies `408`=reconnect, `410`=terminal, `200` parse rules.
 
 ### `liveClaims`
 Golden decoded **access-token claims** from real runs — integration references (assert after decoding a token obtained from the live server for that scenario).
