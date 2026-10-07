@@ -221,8 +221,7 @@ deadline. If a call fails, the real message is on `$_.Exception.InnerException`.
 
 There is no client-credentials grant, so a script can't get a token with nobody present.
 It signs in interactively once and reuses the result. Check `ExpiresAt` before reaching for
-`offline_access`: lifetimes are set per client and can be long (30 days on the client we
-tested).
+`offline_access`: lifetimes are set per client and can be long.
 
 ### The ready-made script
 
