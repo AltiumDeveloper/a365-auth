@@ -30,6 +30,8 @@ libs/
     tests/Altium.Auth.Tests   xUnit conformance runner over the shared vectors.
   python/                     altium-auth (PyPI). Dependency-free (stdlib only).
     tests/conformance/        pytest conformance runner over the shared vectors.
+  java/                       com.altium:altium-auth (Maven Central). Dependency-free (JDK only), Java 17+.
+    src/test/.../ConformanceTest.java  JUnit conformance runner over the shared vectors.
 .github/workflows/            Per-library, path-filtered CI + tag-prefixed release.
 ```
 
@@ -69,7 +71,8 @@ libs/
 6. If the capability is user-exercisable (a new option, flag, method, or grant),
    surface it in **each library's live E2E harness** so it can be tried against a real
    environment — TS `libs/typescript/scripts/test-signin.ts`, .NET
-   `libs/dotnet/tools/SignInTest`, Python `libs/python/tools/signin_test.py`. **These
+   `libs/dotnet/tools/SignInTest`, Python `libs/python/tools/signin_test.py`, Java
+   `libs/java/tools/SignInTest.java`. **These
    harnesses share ONE CLI contract**: the same flags, option names, accepted values,
    and behavior in every language, so an identical command works against any
    implementation (`--env`, `--workspace-env`, `--aes-origin`, `--secure`/`--no-secure`,
@@ -109,14 +112,19 @@ dotnet test libs/dotnet/Altium.Auth.sln -c Release
 # Python
 cd libs/python && uv sync --extra dev && uv run ruff check . \
   && uv run ruff format --check . && uv run mypy && uv run pytest && cd ../..
+
+# Java
+cd libs/java && ./mvnw -B verify javadoc:javadoc \
+  && javac -Xlint:all -Werror -cp target/classes -d target/tools tools/SignInTest.java && cd ../..
 ```
 
 Live end-to-end (needs network + a browser — never in CI): each library ships a
 sign-in tool with an **identical CLI** — TS `npm run test:e2e`, .NET
 `dotnet run --project libs/dotnet/tools/SignInTest`, Python
-`uv run python libs/python/tools/signin_test.py`. Keep them at feature *and* interface
-parity: every new user-facing capability gets the *same* flag/option in **all three**
-harnesses (see playbook step 6), so one command works everywhere. CI builds
+`uv run python libs/python/tools/signin_test.py`, Java
+`java -cp target/classes tools/SignInTest.java` (from `libs/java`). Keep them at feature *and* interface
+parity: every new user-facing capability gets the *same* flag/option in **every**
+harness (see playbook step 6), so one command works everywhere. CI builds
 `tools/SignInTest` so signature drift can't silently break it; the TS harness is
 type-checked when you run it via `tsx`.
 
@@ -128,7 +136,7 @@ type-checked when you run it via `tsx`.
 - [ ] Cross-language parity kept, or a gap recorded in the root README conformance matrix.
 - [ ] Affected `docs/*.md` guides + library READMEs updated; CHANGELOGs updated.
 - [ ] Live E2E harnesses (`scripts/test-signin.ts`, `tools/SignInTest`,
-      `libs/python/tools/signin_test.py`) expose any new user-facing capability with the
+      `libs/python/tools/signin_test.py`, `libs/java/tools/SignInTest.java`) expose any new user-facing capability with the
       *same* CLI flags in every language and still build/type-check — kept at parity.
 - [ ] No secrets in code, tests, or CLI args (secrets come from env only).
 
