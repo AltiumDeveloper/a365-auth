@@ -29,8 +29,10 @@ Full API reference and examples for each library are on this site (the **Librari
 | --- | --- |
 | `@altium-developer/altium-auth` | [TypeScript](libraries/typescript.md) |
 | `Altium.Auth` | [.NET](libraries/dotnet.md) |
+| `altium-auth` | [Python](libraries/python.md) |
+| `com.altium:altium-auth` | [Java](libraries/java.md) |
 
-Both are in **preview** — the API may change as the spec and libraries evolve.
+All are in **preview** — the API may change as the spec and libraries evolve.
 
 ## How it stays in sync
 

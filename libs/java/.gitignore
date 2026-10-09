@@ -1,0 +1,8 @@
+# Maven build output (created by `./mvnw verify`, plus target/tools from the harness compile)
+target/
+
+# Eclipse / VS Code Java (JDT) project metadata
+.project
+.classpath
+.settings/
+.factorypath

@@ -83,3 +83,4 @@ nav:
       - TypeScript: libraries/typescript.md
       - .NET: libraries/dotnet.md
       - Python: libraries/python.md
+      - Java: libraries/java.md

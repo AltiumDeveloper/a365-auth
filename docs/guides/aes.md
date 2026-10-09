@@ -26,7 +26,7 @@ hostname. Given the AES server's origin (e.g.
 ActionWait/callback of its own and shares Commercial's. Every endpoint for an
 AES installation lives on the same customer origin.
 
-Because the origin varies per installation, both libraries expose a builder
+Because the origin varies per installation, the libraries expose a builder
 instead of a fixed constant:
 
 ```ts
@@ -37,6 +37,16 @@ const endpoints = createAesEndpoints("https://aes.server.example:9785");
 ```csharp
 using Altium.Auth;
 var endpoints = AltiumEndpoints.Aes("https://aes.server.example:9785");
+```
+
+```python
+from altium_auth import aes_endpoints
+endpoints = aes_endpoints("https://aes.server.example:9785")
+```
+
+```java
+import com.altium.auth.AltiumEndpoints;
+AltiumEndpoints endpoints = AltiumEndpoints.aes("https://aes.server.example:9785");
 ```
 
 ## Single workspace
